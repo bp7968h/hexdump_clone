@@ -1,31 +1,29 @@
 use std::io::prelude::*;
+use std::fs::File;
+use std::env;
 
 const BYTES_PER_LINE: usize = 16;
 
-//Multiline string literals don’t need double quotes escaped when built with raw string literals (the r prefix and the # delimiters). The additional b prefix indicates that this should be treated as bytes (&[u8]) not as UTF-8 text (&str).
-const INPUT: &'static [u8] = br#"
 fn main(){
-    println!("Hello, World!");
-}"#;
+    let arg = env::args().nth(1);
+    let fname = arg.expect("usage: hexdump_clone FILENAME");
 
-fn main() -> std::io::Result<()>{
-    //Make space for the program's input with an internal buffer
-    let mut buffer: Vec<u8> = Vec::new();
-    //Read our input and inserts it into our internal buffer
-    INPUT.read_to_end(&mut buffer)?;
-    println!("Buffer: {:?}", buffer);
+    let mut f = File::open(&fname).expect("Unable to open file.");
+    let mut pos = 0;
+    let mut buffer = [0; BYTES_PER_LINE];
 
-    let mut position_in_input = 0;
-    for line in buffer.chunks(BYTES_PER_LINE){
-        println!("Chunk Line: {:?}", line);
-        println!(" [0x{:08x}] ", position_in_input);
-        for byte in line {
-            print!("{:02x} ", byte);
+    while let Ok(_) = f.read_exact(&mut buffer) {
+        print!("[0x{:08x}] ", pos);
+        for byte in &buffer {
+            match *byte {
+                0x00 => print!(". "),
+                0xff => print!("## "),
+                _ => print!("{:02x} ", byte),
+            }
         }
-        println!();
-        position_in_input += BYTES_PER_LINE;
+        println!("");
+        pos += BYTES_PER_LINE;
     }
 
-    Ok(())
 }
 
